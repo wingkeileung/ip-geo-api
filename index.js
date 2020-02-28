@@ -1,48 +1,40 @@
-const fs = require("fs");
+const express = require("express")
+const bodyParser = require("body-parser")
+const Ip2cc = require("./cidr2ip.js");
+const ip2cc = new Ip2cc("./IP2LOCATION-LITE-DB1.CSV")
+const app = express()
 
-module.exports = class ip2cc {
-  constructor(options) {
-    if (typeof options === 'string') {
-      options = {file: options};
-    }
-    this.database = fs.readFileSync(options.file).toString().split('\r\n').map(line => {
-      let [start, end, code, country] = line.split('","');
-      start = parseInt(String(start).substr(1), 10);
-      end = parseInt(end, 10);
-      country = String(country).slice(0, -1);
-      return {start, end, code, country};
-    });
-  }
-  static convertAddress(strAddress) {
-    const bytes = String(strAddress).split('.');
-    let address = 0;
-    for (let i = 0; i < 4; i++) {
-      address += (Math.pow(256, i) * bytes[3 - i]);
-    }
-    return address;
-  }
-  bisectCountry(address, start, end, recursion = 0) {
-    if (typeof start === 'undefined') {
-      start = 0;
-    }
-    if (typeof end === 'undefined') {
-      end = this.database.length - 1;
-    }
-    let pos = start + Math.floor((end - start) / 2);
-    if (address >= this.database[pos].start && address <= this.database[pos].end) {
-      return this.database[pos];
-    }
-    if ((end - start) < 3) {
-      return {code: '-', country: '-'};
-    }
-    if (address < this.database[pos].start) {
-      return this.bisectCountry(address, start, pos, ++recursion);
-    }
-    if (address > this.database[pos].end) {
-      return this.bisectCountry(address, pos, end, ++recursion);
-    }
-  }
-  lookup(address) {
-    return Object.assign({address}, this.bisectCountry(ip2cc.convertAddress(address)));
-  }
-};
+app.use(bodyParser.json())
+app.use(bodyParser.urlencoded({ extended: true }))
+
+app.get("/", function(req, res) {
+res.status(200).send("Welcome to our restful API")
+})
+
+app.get("/ip/", function (req, res) {
+res.status(200).send("IP To country API")
+})
+
+app.get("/ip/:ip", function(req, res) {
+console.log("start")
+
+let ip = req.params.ip;
+let result = ip2cc.lookup(ip)
+console.log("end")
+
+res.status(200).send(result)
+})
+
+app.get("/ip/2cc/", function(req,res){
+res.status(200).send("IP To country code API")
+})
+
+app.get("/ip/2cc/:ip", function(req,res){
+let ip = req.params.ip;
+let result = ip2cc.lookup(ip)
+res.status(200).send(result.code)
+})
+
+const server = app.listen(3000, function () {
+    console.log("app running on port", server.address().port)
+})

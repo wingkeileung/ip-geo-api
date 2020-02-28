@@ -1,4 +1,4 @@
-const fs = require('fs');
+const fs = require("fs");
 
 module.exports = class ip2cc {
   constructor(options) {
@@ -45,4 +45,4 @@ module.exports = class ip2cc {
   lookup(address) {
     return Object.assign({address}, this.bisectCountry(ip2cc.convertAddress(address)));
   }
-};0
+};
